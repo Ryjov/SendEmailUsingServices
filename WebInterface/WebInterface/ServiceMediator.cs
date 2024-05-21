@@ -1,22 +1,17 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Connections;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace EmailSender
+namespace WebInterface
 {
-    public class Receiver
+    public class ServiceMediator
     {
         private readonly IConfiguration Configuration;
 
-        public async Task ReceiveMessage()
+        public void SendEnailToQueue()
         {
             ConnectionFactory factory = new();
-            factory.Uri = new Uri(uriString: Configuration["RabbitMQ:UriString"]);
+            factory.Uri = new Uri(uriString: Configuration["RabbitMQ:UriString"]);// add appsettings
             factory.ClientProvidedName = "Rabbit sender app";
 
             IConnection cnn = factory.CreateConnection();
@@ -29,9 +24,16 @@ namespace EmailSender
             channel.ExchangeDeclare(exchangeName, ExchangeType.Direct);
             channel.QueueDeclare(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
             channel.QueueBind(queueName, exchangeName, routingKey, arguments: null);
-            channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-            var consumer = new EventingBasicConsumer(channel);
+            for (int i = 0; i < 60; i++)
+            {
+                byte[] messageBodyBytes = Encoding.UTF8.GetBytes(s: $"Message #{i}");
+                channel.BasicPublish(exchangeName, routingKey, basicProperties: null, messageBodyBytes);
+                Thread.Sleep(1000);
+            }
+
+            channel.Close();
+            cnn.Close();
         }
     }
 }

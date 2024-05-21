@@ -1,0 +1,39 @@
+﻿@page "/"
+
+<PageTitle>Send Email</PageTitle>
+
+<EditForm Model="Content" OnSubmit="Submit" FormName="Email!">
+    <div>
+        <label>
+            Input text:
+            <InputText @bind-Value="Content!.Text" />
+        </label>
+    </div>
+    <div>
+        <label>
+            Recipient Email Address:
+            <InputText @bind-Value="Content!.Recipient" />
+        </label>
+    </div>
+    <div>
+        <button type="submit">Send Email</button>
+    </div>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm]
+    public ContentModel? Content { get; set; }
+
+    protected override void OnInitialized() => Content ??= new();
+
+    public void Submit()
+    {
+        
+    }
+
+    public class ContentModel
+    {
+        public string? Text { get; set; }
+        public string? Recipient { get; set; }
+    }
+}
