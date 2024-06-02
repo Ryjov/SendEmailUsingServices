@@ -28,7 +28,8 @@
 
     public void Submit()
     {
-        
+        var mediator = new ServiceMediator();
+        mediator.SendEmailToQueue(Content.Text, Content.Recipient);
     }
 
     public class ContentModel

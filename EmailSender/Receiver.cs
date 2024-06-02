@@ -13,25 +13,50 @@ namespace EmailSender
     {
         private readonly IConfiguration Configuration;
 
-        public async Task ReceiveMessage()
+        public static async Task Main()
         {
+            var emailService = new EmailService();
             ConnectionFactory factory = new();
-            factory.Uri = new Uri(uriString: Configuration["RabbitMQ:UriString"]);
+            factory.Uri = new Uri(uriString: "amqp://guest:guest@localhost:5672");
             factory.ClientProvidedName = "Rabbit sender app";
 
-            IConnection cnn = factory.CreateConnection();
-            IModel channel = cnn.CreateModel();
+            try
+            {
+                IConnection cnn = factory.CreateConnection();
+                IModel channel = cnn.CreateModel();
 
-            string exchangeName = "DemoExchange";
-            string routingKey = "demo-routing-key";
-            string queueName = "DemoQueue";
+                string exchangeName = "DemoExchange";
+                string routingKey = "demo-routing-key";
+                string queueName = "DemoQueue";
 
-            channel.ExchangeDeclare(exchangeName, ExchangeType.Direct);
-            channel.QueueDeclare(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
-            channel.QueueBind(queueName, exchangeName, routingKey, arguments: null);
-            channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                channel.ExchangeDeclare(exchangeName, ExchangeType.Direct);
+                channel.QueueDeclare(queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+                channel.QueueBind(queueName, exchangeName, routingKey, arguments: null);
+                channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-            var consumer = new EventingBasicConsumer(channel);
+                var consumer = new EventingBasicConsumer(channel);
+                consumer.Received += (sender, args) =>
+                {
+                    var body = args.Body.ToArray();
+
+                    string message = Encoding.UTF8.GetString(body);
+
+                    // emailService.SendTextMail("bolt321@mail.ru", message);
+
+                    channel.BasicAck(args.DeliveryTag, multiple: true);
+                };
+
+                string consumerTag = channel.BasicConsume(queueName, autoAck: false, consumer);
+
+                channel.BasicCancel(consumerTag);
+
+                channel.Close();
+                cnn.Close();
+            }
+            catch (Exception ex)
+            {
+                string s = ex.Message;
+            }
         }
     }
 }
